@@ -1,0 +1,314 @@
+﻿@page "/clientes"
+@attribute [Authorize]
+@using CrudClientes.Web.Data.Services
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@inject IClienteService ClienteService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Nav
+@inject ILogger<Clientes.Index> Logger
+
+<!--Inyecto las Dependencias
+    Utiliza el servicio ClienteService para realizar las operaciones CRUD y IClienteService como interfaz.
+    IJSRuntime me habilita el JavaScript para la retroalimentación en la interfaz gráfica.
+    NavigationManager para redireccionar a las paginas
+    ILogger<> se usa para guardar logs o registros de actividades realizadas, por ejemplo: al guardar o editar clientes.
+
+    Nota: Este Jodio rendermode InteractiveServer me dio problemas al inicio, RECORDAR PARA TODOS LOS COMPONENTES Y FUTUROS PROYECTOS.
+-->
+<!--Quitare los span y mejor pondre botones para recargar, volver a consultar y otra para agregar cliente-->
+<h3 class="d-print-none mt-2">
+    Clientes
+    <button @onclick="MostrarFormulario" class="btn btn-success">+</button>
+    <button @onclick="CargarClientes" class="btn btn-warning">&orarr;</button>
+</h3>
+
+
+<!--Formatear este código, Estado: HECHO-->
+@if (ShowForm)
+{
+    <div class="container">
+        <!--Este formulario se utiliza para registrar un nuevo cliente,
+            Por qué no pensé en usar los Operadores Ternarios antes? jajaja-->
+        <h4>@(EsEdicion ? "Editar Cliente" : "Registrar nuevo cliente")</h4>
+
+        <EditForm Model="@Request" OnValidSubmit="GuardarCliente" class="form-control">
+            <DataAnnotationsValidator />
+
+            <!--Aquí comienzo a agregar los campos de la interfaz-->
+            <div class="mt-2">
+                <label class="form-label">Nombre:</label>
+                <input class="form-control" @bind="Request.Nombre" type="text" />
+            </div>
+
+            <div class="mt-2">
+                <label class="form-label">Email:</label>
+                <input class="form-control" @bind="Request.Email" type="text" />
+            </div>
+
+            <div class="mt-2">
+                <label class="form-label">Teléfono:</label>
+                <input class="form-control" @bind="Request.Telefono" type="text" />
+            </div>
+
+            <div class="mt-2">
+                <label class="form-label">Dirección:</label>
+                <textarea class="form-control" @bind="Request.Direccion" />
+            </div>
+
+            <div class="mt-2 mb-2">
+                <label class="form-label">Activo:</label>
+                <InputCheckbox class="form-check" @bind-value="Request.Activo" />
+            </div>
+
+            <!--Aquí se agregan los mensajes de validación, se me hace cómodo así.-->
+            <ValidationMessage For="() => Request.Nombre" />
+            <ValidationMessage For="() => Request.Email" />
+            <ValidationMessage For="() => Request.Telefono" />
+            <ValidationMessage For="() => Request.Direccion" />
+
+            <!--Mis botones de guardar y cancelar-->
+            <div class="mt-3">
+                <input type="submit" value="@(EsEdicion ? "Actualizar" : "Guardar")" class="btn btn-success me-2" />
+                <input @onclick="Cancelar" type="button" value="Cancelar" class="btn btn-danger" />
+            </div>
+        </EditForm>
+    </div>
+}
+else
+{
+    <div class="d-print-none">
+        <!--Aquí está la interfaz desarrollada por el profe, mejor usarla.-->
+        <div class="input-group mb-3">
+            <span class="input-group-text" id="lblBusqueda">Búsqueda</span>
+            <input @bind="Filtro" type="text" class="form-control" id="txtboxConsultar" placeholder="Escribe el dato a consultar: ID | Nombre | Teléfono | E-Mail" aria-label="filtro" aria-describedby="basic-addon1">
+            <span @onclick="Consultar" class="btn btn-outline-secondary" id="btnBuscar">Buscar</span>
+
+            <!--Checkbox-->
+            <div class="form-check ms-3">
+                <input checked="@SoloActivos" @onchange="ClientesActivos" class="form-check-input" type="checkbox" id="flexCheckDefault">
+                <label class="form-check-label" for="flexCheckDefault">
+                    Solo Activos
+                </label>
+            </div>
+        </div>
+
+        <button class="btn btn-primary d-print-none mb-2" @onclick="Imprimir">Imprimir</button>
+    </div>
+
+    <!--Título para impresión-->
+    <h1 class="d-none d-print-block">Reporte de clientes</h1>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">...</th>
+                <th scope="col">Código</th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Teléfono</th>
+                <th scope="col">Correo Electrónico</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Listado.Count > 0)
+            {
+                @foreach (var cliente in Listado)
+                {
+                    <tr>
+                        <th scope="row">
+                            <!--Botones con funciones Lambda-->
+                            <div class="btn-group d-print-none">
+                                <button @onclick="() => EditarClienteClic(cliente)" class="btn btn-sm btn-warning">Editar</button>
+                                <button @onclick="() => ConfirmarEliminacion(cliente.Id)" class="btn btn-sm btn-danger">Eliminar</button>
+                            </div>
+                        </th>
+                        <th>@cliente.Id</th>
+                        <th>@cliente.Nombre</th>
+                        <th>@cliente.Telefono</th>
+                        <th>@cliente.Email</th>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <th colspan="5">
+                        <div class="alert alert-info border-2 text-center">
+                            @(!string.IsNullOrEmpty(Filtro) ?
+                                                "No se encontraron resultados que coincidan con tu búsqueda. Intenta con otros términos o recarga la tabla."
+                                                :
+                                                "Aún no hay clientes activos registrados en el sistema.")
+                         </div>
+                    </th>
+                </tr>
+                
+            }
+        </tbody>
+    </table>
+}
+@code {
+    // Propiedades:
+    // Esta propiedad se encarga de filtrar los clientes
+    public string Filtro { get; set; } = string.Empty;
+    //Obtencion de la lista de valores
+    public List<ClienteDto> Listado { get; set; } = [];
+    // Esta propiedad se encarga de mostrar el formulario de registro de cliente
+    public bool ShowForm { get; set; } = false;
+    //Request representa los datos que vienen del formulario, es decir, lo que el usuario está enviando para crear o actualizar un cliente.
+    public ClienteDto Request { get; set; } = new();
+    //Verificar si va a editar o crear registros
+    private bool EsEdicion => Request.Id > 0;
+    public bool SoloActivos { get; set; } = true;
+
+    //Cargar la interfaz del cliente con los datos, es mejor usar Lambda, verdad?.
+    protected override async Task OnInitializedAsync() => await CargarClientes();
+
+    //Utilizo esto para evitar el error que aparecio cuando use Lambda.
+    private Task MostrarFormulario()
+    {
+        ShowForm = true;
+        return Task.CompletedTask;
+    }
+    // Este metodo se encarga de Cancelar la operacion de registro de cliente
+    private async Task Cancelar()
+    {
+        Request = new ClienteDto();
+        ShowForm = false;
+        await CargarClientes();
+        StateHasChanged();
+    }
+
+    // Este servicio se encarga de manejar las operaciones CRUD de clientes
+    private async Task GuardarCliente()
+    {
+        try
+        {
+            if (!EsEdicion) // Si no es editar
+            {
+                await ClienteService.CrearClienteAsync(Request); //Llama al servicio.
+                Logger.LogInformation("Cliente guardado: {@Cliente}", System.Text.Json.JsonSerializer.Serialize(Request)); //Guardar logs.
+                await JSRuntime.InvokeVoidAsync("alert", "Cliente registrado correctamente."); //Confirmo.
+            }
+            else
+            {
+                await ClienteService.ActualizarClienteAsync(Request.Id, Request);
+                Logger.LogInformation("Cliente actualizado: {@Cliente}", System.Text.Json.JsonSerializer.Serialize(Request)); //Guardar al Actualizar - logs.
+                await JSRuntime.InvokeVoidAsync("alert", "Cliente actualizado correctamente.");
+            }
+
+            ShowForm = false; // Oculta el formulario
+            Request = new ClienteDto(); // Limpia los campos
+            await CargarClientes();
+            StateHasChanged(); //Forzo el cambio.
+            Nav.NavigateTo("/clientes/"); // Navega a la página de lista clientes y sigo navegando.
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar cliente: {ex.Message}");
+        }
+    }
+
+    // Este metodo se encarga de cargar los clientes desde el servicio
+    private async Task CargarClientes()
+    {
+        try
+        {
+            if (SoloActivos)
+            {
+                Listado = await ClienteService.ObtenerClientesActivosAsync();
+            }
+            else
+            {
+                Listado = await ClienteService.ObtenerClientesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar clientes: {ex.Message}");
+        }
+    }
+
+    private async Task Consultar()
+    {
+        try
+        {
+            Listado = new();
+            if (!string.IsNullOrWhiteSpace(Filtro))
+            {
+                if (SoloActivos)
+                {
+                    Listado = await ClienteService.ObtenerClientesFiltradosActivosAsync(Filtro);
+                }
+                else
+                {
+                    Listado = await ClienteService.ObtenerClientesFiltradosAsync(Filtro);
+                }
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Por favor, introduce datos válidos.");
+                // Cuando termina, vuelve a recargar la lista para continuar navegando.
+                await CargarClientes();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al consultar clientes: {ex.Message}");
+        }
+    }
+
+    //Le asigno los valores de la edicion
+    private Task EditarClienteClic(ClienteDto cliente)
+    {
+        Request = new ClienteDto
+        {
+                Id = cliente.Id,
+                Nombre = cliente.Nombre,
+                Email = cliente.Email,
+                Telefono = cliente.Telefono,
+                Direccion = cliente.Direccion,
+                Activo = cliente.Activo,
+                FechaCreacion = cliente.FechaCreacion
+        };
+
+        ShowForm = true;
+        return Task.CompletedTask;
+    }
+
+    //Metodo de eliminar de forma (Ahora fisica)
+    private async Task ConfirmarEliminacion(int id)
+    {
+        try
+        {
+            bool confirmado = await JSRuntime.InvokeAsync<bool>("confirm", $"¿Estás seguro de que deseas eliminar el cliente #{id}?");
+            if (confirmado)
+            {
+                await ClienteService.EliminarClienteAsync(id);
+                await CargarClientes();
+                await JSRuntime.InvokeVoidAsync("alert", $"Cliente #{id} eliminado éxitosamente.");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Sin cambios.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al eliminar cliente: {ex.Message}");
+        }
+    }
+    private async Task Imprimir()
+    {
+        await JSRuntime.InvokeVoidAsync("imprimirPagina");
+    }
+    private async Task ClientesActivos(ChangeEventArgs e)
+    {
+        // Este método se encarga de filtrar los clientes activos
+        SoloActivos = (bool)e.Value!;
+        await CargarClientes(); // Recarga la lista de clientes
+        StateHasChanged(); // Forza el cambio de estado para actualizar la UI
+        
+    }
+
+}

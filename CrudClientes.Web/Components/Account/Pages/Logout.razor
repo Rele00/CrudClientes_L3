@@ -1,0 +1,16 @@
+﻿@page "/Account/Logout"
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Navigation
+@using CrudClientes.Web.Data.Context
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+
+<h3>Cerrando sesión...</h3>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await SignInManager.SignOutAsync();
+        Navigation.NavigateTo("/Account/Login", true);
+    }
+}

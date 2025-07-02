@@ -1,0 +1,129 @@
+/*Modo Oscuro*/
+html, body {
+    font-family: 'Comic Sans MS', inheritit;
+}
+:root {
+    --bs-body-bg: #2b2f3e;
+    --bs-body-color: #e0e0e0;
+}
+
+[data-bs-theme="dark"] {
+    --bs-body-bg: #2b2f3e;
+    --bs-body-color: #e0e0e0;
+}
+
+/* 2. Fondo y contenedor general */
+body, .main-container {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+/* 3. Cabecera y sidebar */
+.navbar, .sidebar {
+    background-color: #272b38;
+    color: var(--bs-body-color);
+}
+
+    .navbar .nav-link, .sidebar .nav-link {
+        color: #bbb;
+    }
+
+        .navbar .nav-link:hover, .sidebar .nav-link:hover {
+            color: #fff;
+            background-color: rgba(255,255,255,0.1);
+        }
+
+/* 4. Tablas oscuras */
+.table-dark {
+    background-color: #333845;
+    color: #e0e0e0;
+}
+
+    .table-dark .thead-dark th {
+        background-color: #3e414e;
+        border-color: #525663;
+    }
+
+    .table-dark .table-striped tbody tr:nth-of-type(odd) {
+        background-color: #2f3241;
+    }
+
+    .table-dark .table-hover tbody tr:hover {
+        background-color: #44475a;
+    }
+
+/* 5. Formularios y inputs */
+.form-control, .input-group .form-control {
+    background-color: #3a3f51;
+    border: 1px solid #4f5468;
+    color: white;
+}
+    /*Cambia en enfoque al seleccionar un textinput*/
+    .form-control:focus {
+        /*background-color: #44475a;*/
+        border-color: #626680;
+        box-shadow: none;
+    }
+
+
+/* 6. Botones personalizados */
+.btn-darkmode,
+.btn-darkmode.btn-outline,
+.btn.btn-darkmode {
+    background-color: #5a5f78;
+    border-color: #6d718c;
+    color: #e0e0e0;
+}
+
+    .btn-darkmode:hover {
+        background-color: #6d718c;
+        color: #fff;
+        border-color: #7f84a1;
+    }
+
+/* 7. Tarjetas/containers */
+.card, .container, .modal-content {
+    background-color: #272b38;
+    border: 1px solid #3e414e;
+    color: var(--bs-body-color);
+}
+
+/* 8. Alertas */
+.alert-darkmode {
+    background-color: #44475a;
+    border-color: #5a5f78;
+    color: #e0e0e0;
+}
+
+/* 9. Ajustes adicionales */
+table th, table td {
+    border-top: 1px solid #4f5468;
+    color: aliceblue;
+}
+/*Botón de buscar*/
+#btnBuscar {
+    background-color: white;
+    color: black;
+}
+
+    #btnBuscar:hover {
+        background-color: gold;
+    }
+
+#txtboxConsultar {
+    color: white;
+}
+
+    #txtboxConsultar::placeholder {
+        color: #a5aac0;
+    }
+
+#lblBusqueda {
+    background-color: white;
+}
+
+#mainlayout {
+    background-color: #3F445A;
+    border: 1px solid #2b2f3e;
+    color: var(--bs-body-color);
+}
